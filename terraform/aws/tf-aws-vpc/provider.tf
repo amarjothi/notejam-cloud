@@ -3,9 +3,9 @@
 terraform{
 
 backend "s3" {
-       bucket = var.bucket_id
-       key    = var.bucket_arn
-       region = var.region
+       bucket = "amartfstate"
+       key    = "arn:aws:s3:::amartfstate/storestate/"
+       region = "eu-west-2"
 }
 
 required_version = ">= 1.0"
