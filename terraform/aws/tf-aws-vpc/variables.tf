@@ -9,3 +9,13 @@ variable env {
     description = "The environment to deploy the resources to"
     default = null
 }
+
+variable "bucket_id" {
+  type = string
+  default = ""
+}
+
+variable "bucket_arn" {
+  type = string
+  default = ""
+}

@@ -1,0 +1,2 @@
+vpc_remote_state_address = "https://gitlab.com/api/v4/projects/33357473/terraform/state/aws-vpc"
+workspaces_remote_state_address = "https://gitlab.com/api/v4/projects/42891017/terraform/state/tf-aws-developer-desktops-dev"
