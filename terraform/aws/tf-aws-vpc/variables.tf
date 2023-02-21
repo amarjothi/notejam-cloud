@@ -12,10 +12,10 @@ variable env {
 
 variable "bucket_id" {
   type = string
-  default = ""
+  default = "s3://amartfstate/storestate/"
 }
 
 variable "bucket_arn" {
   type = string
-  default = ""
+  default = "arn:aws:s3:::amartfstate/storestate/"
 }

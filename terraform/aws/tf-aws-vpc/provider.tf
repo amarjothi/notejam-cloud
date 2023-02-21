@@ -1,10 +1,13 @@
+
+
+terraform{
+
 backend "s3" {
        bucket = var.bucket_id
        key    = var.bucket_arn
        region = var.region
 }
 
-terraform{
 required_version = ">= 1.0"
 
 required_providers {
