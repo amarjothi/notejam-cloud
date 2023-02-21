@@ -1,4 +1,4 @@
-name: Deploy Infrastructure
+name: Deploy Infrastructure VPC
 
 on:
   workflow_dispatch:
