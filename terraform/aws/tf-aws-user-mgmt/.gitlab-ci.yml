@@ -1,0 +1,4 @@
+include:
+  - project: 'cms5poc/shared-assets/template-gitlab-ci'
+    ref: main
+    file: 'gitlab-ci-terraform.yml'  
