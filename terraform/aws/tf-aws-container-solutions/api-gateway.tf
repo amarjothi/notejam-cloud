@@ -7,7 +7,7 @@ module "api_gateway" {
   version = "2.2.2"
 
   name          = "${var.env}-api-gateway"
-  description   = "cms5poc HTTP API Gateway"
+  description   = "notejampoc HTTP API Gateway"
   protocol_type = "HTTP"
 
   cors_configuration = {
@@ -22,7 +22,7 @@ module "api_gateway" {
 #   }
 
   domain_name                 = "apigateway.${var.domain_name}"
-  domain_name_certificate_arn = aws_acm_certificate.cms5poc_online.arn
+  domain_name_certificate_arn = aws_acm_certificate.notejampoc_online.arn
 
   default_stage_access_log_destination_arn = aws_cloudwatch_log_group.api_gateway.arn
   default_stage_access_log_format          = "$context.identity.sourceIp - - [$context.requestTime] \"$context.httpMethod $context.routeKey $context.protocol\" $context.status $context.responseLength $context.requestId $context.integrationErrorMessage"

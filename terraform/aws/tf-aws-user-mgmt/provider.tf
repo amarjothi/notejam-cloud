@@ -15,7 +15,7 @@ provider "aws" {
   region = var.region
     default_tags {
       tags = {
-        Project = "cms5poc"
+        Project = "notejampoc"
         DeployMethod = "Terraform"
         Environment = var.env
     }

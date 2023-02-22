@@ -13,7 +13,7 @@ variable env {
 variable project_name {
     type = string
     description = "The name of the project"
-    default = "cms5poc"
+    default = "notejampoc"
 }
 
 variable network_acls {

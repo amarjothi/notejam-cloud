@@ -1,6 +1,6 @@
 ## Default image to use
 image:
-  name: registry.gitlab.com/cms5poc/shared-assets/docker-iac/docker-iac
+  name: registry.gitlab.com/notejampoc/shared-assets/docker-iac/docker-iac
 
 ## Gitlab variables
 variables:

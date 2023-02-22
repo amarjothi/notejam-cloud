@@ -28,7 +28,7 @@ resource "aws_workspaces_directory" "workspaces-directory" {
   
   workspace_creation_properties {
     custom_security_group_id = aws_security_group.workspaces.id
-    default_ou = "OU=cms5poc,DC=cms5poc,DC=local"
+    default_ou = "OU=notejampoc,DC=notejampoc,DC=local"
     enable_internet_access = true
     enable_maintenance_mode = false
     user_enabled_as_local_administrator = true

@@ -1,6 +1,6 @@
 // IAM Role for ECS Task Role
 resource "aws_iam_role" "ecs_task_role" {
-  name = "cms5poc-ecs-task-role-${var.env}"
+  name = "notejampoc-ecs-task-role-${var.env}"
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -21,7 +21,7 @@ EOF
 // IAM Policy for ECS Task Role to allow access to CLoudwatch Logs
 resource "aws_iam_policy" "ecs_task_role_policy" {
   #checkov:skip=CKV_AWS_290: "Allow access to Cloudwatch Logs"
-  name = "cms5poc-ecs-task-role-policy-${var.env}"
+  name = "notejampoc-ecs-task-role-policy-${var.env}"
   policy = <<EOF
 {
   "Version": "2012-10-17",

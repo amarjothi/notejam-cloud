@@ -1,8 +1,7 @@
-project_name = "cms5poc"
-domain_name = "cms5poc.online"
+project_name = "notejampoc"
+domain_name = "notejampoc.online"
 
 gitlab_username = "gitlab-ci-token"
-vpc_remote_state_address = "https://gitlab.com/api/v4/projects/42886287/terraform/state/tf-aws-vpc-prod"
 
 
 // Define what is allowed in to the API Gateway exposed to the internet
@@ -22,7 +21,7 @@ ecs_lb_ingress_cidr_blocks = [
 // Define the ECS services
 ecs_services = {
     "tasks-api" = {
-      image_identifier = "266146780983.dkr.ecr.eu-west-2.amazonaws.com/tasks-api:latest"
+      image_identifier = ""
       container_port   = 80
       container_name   = "tasks-api"
       cpu              = 256
@@ -33,30 +32,5 @@ ecs_services = {
         ASPNETCORE_URLS        = "http://+:80"
       }
     }
-
-    "tasks-scheduler" = {
-      image_identifier = "266146780983.dkr.ecr.eu-west-2.amazonaws.com/tasks-scheduler:latest"
-      container_port   = 80
-      container_name   = "tasks-scheduler"
-      cpu              = 256
-      memory           = 512
-      desired_count    = 1
-      environment      = {
-        ASPNETCORE_ENVIRONMENT = "Staging"
-        ASPNETCORE_URLS        = "http://+:80"
-      }
-    }
-
-    "tasks-subscriber" = {
-      image_identifier = "266146780983.dkr.ecr.eu-west-2.amazonaws.com/tasks-subscriber:latest"
-      container_port   = 80
-      container_name   = "tasks-subscriber"
-      cpu              = 256
-      memory           = 512
-      desired_count    = 1
-      environment      = {
-        ASPNETCORE_ENVIRONMENT = "Staging"
-        ASPNETCORE_URLS        = "http://+:80"
-      }
-    }
+ 
 }

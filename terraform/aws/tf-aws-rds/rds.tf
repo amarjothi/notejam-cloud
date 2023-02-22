@@ -46,7 +46,7 @@ module "mysql_security_group" {
 
 module "db" {
   source = "terraform-aws-modules/rds/aws"
-  identifier = "cms5poc-${var.env}"
+  identifier = "notejampoc-${var.env}"
   version = "~> 5.0"
   engine               = "mysql"
   engine_version       = "8.0"
@@ -103,7 +103,7 @@ module "db" {
   ]
 
   db_instance_tags = {
-      Name = "${var.env}-cms5poc"
+      Name = "${var.env}-notejampoc"
   }
 
   db_option_group_tags = {

@@ -1,5 +1,5 @@
 // Upload Lets Encrypt Certs to ACM
-resource "aws_acm_certificate" "cms5poc_online" {
+resource "aws_acm_certificate" "notejampoc_online" {
   private_key = file("pk.pem")
   certificate_body = file("cert.pem")
   certificate_chain = file("chain.pem")
