@@ -2,122 +2,49 @@ name: Deploy Infrastructure VPC
 
 on:
   workflow_dispatch:
-
-defaults:
-  run:
-    working-directory: 'terraform/aws/tf-aws-vpc'
-
-permissions:
-  pull-requests: write
-  
+    inputs:
+        tfpath:
+          description: 'TF File Path'     
+          required: false
+          default: 'terraform/aws/tf-aws-vpc'
 jobs:
-  tf_fmt:
-    name: Deploy Site
+  tf_code_check:
+    name: Terraform Validation and Build
     runs-on: ubuntu-latest
+
+    if:  ${{ inputs.tfpath }} 
     steps:
+    - uses: actions/checkout@v2.5.0
 
-    - uses: actions/checkout@v3
-    - uses: hashicorp/setup-terraform@v2
 
-    - name: Terraform fmt
-      id: fmt
-      run: terraform fmt -check
-      continue-on-error: true
-
-    - name: Terraform Init
-      id: init
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TF_ACTION_WORKING_DIR: 'terraform/aws/tf-aws-vpc'
-        tf_actions_working_dir: 'terraform/aws/tf-aws-vpc'
-        AWS_REGION: 'eu-west-2'
-        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: cd ${tf_actions_working_dir}; terraform init
-
-    - name: Terraform Validate
-      id: validate
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TF_ACTION_WORKING_DIR: 'terraform/aws/tf-aws-vpc'
-        tf_actions_working_dir: 'terraform/aws/tf-aws-vpc'
-        AWS_REGION: 'eu-west-2'
-        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: terraform validate -no-color
-
-    - name: Terraform Plan
-      id: plan
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TF_ACTION_WORKING_DIR: 'terraform/aws/tf-aws-vpc'
-        tf_actions_working_dir: 'terraform/aws/tf-aws-vpc'
-        AWS_REGION: 'eu-west-2'
-        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: cd ${tf_actions_working_dir}; terraform plan -no-color
-      continue-on-error: true
-
-    - uses: actions/github-script@v6
-      if: github.event_name == 'pull_request'
-      env:
-        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TF_ACTION_WORKING_DIR: 'terraform/aws/tf-aws-vpc'
-        tf_actions_working_dir: 'terraform/aws/tf-aws-vpc'
-        AWS_REGION: 'eu-west-2'
-        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    - name: Configure AWS Credentials Action For GitHub Actions
+      uses: aws-actions/configure-aws-credentials@v1
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          // 1. Retrieve existing bot comments for the PR
-          const { data: comments } = await github.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-          })
-          const botComment = comments.find(comment => {
-            return comment.user.type === 'Bot' && comment.body.includes('Terraform Format and Style')
-          })
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2 
+    - name: Setup Terraform CLI
+      uses: hashicorp/setup-terraform@v2.0.2
 
-          // 2. Prepare format of the comment
-          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-          #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-          <details><summary>Validation Output</summary>
+    - name: Terraform init, plan and apply
+      run: |
+        echo `pwd`
+        echo "tfpath ${{ github.event.inputs.tfpath }}"
+        echo "** Running Terraform Init**"
+        terraform init
 
-          \`\`\`\n
-          ${{ steps.validate.outputs.stdout }}
-          \`\`\`
+        echo "** Running Terraform Validate**"
+        terraform validate
 
-          </details>
+        echo "** Running Terraform Plan**"
+        terraform plan
 
-          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-
-          <details><summary>Show Plan</summary>
-
-          \`\`\`\n
-          ${process.env.PLAN}
-          \`\`\`
-
-          </details>
-
-          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
-
-          // 3. If we have a comment, update it, otherwise create a new one
-          if (botComment) {
-            github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: botComment.id,
-              body: output
-            })
-          } else {
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
-          }
+#        echo "** Running Terraform Apply**"
+#        terraform apply -auto-approve
+      working-directory: ${{ github.event.inputs.tfpath }}
+    - name: Terraform Destroy
+      run: |
+        echo "** Running Terraform Destroy**"
+        terraform plan -destroy
+#        terraform destroy -auto-approve
+      working-directory: ${{ github.event.inputs.tfpath }}
