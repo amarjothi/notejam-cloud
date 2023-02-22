@@ -29,6 +29,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: 'terraform/aws/tf-aws-vpc'
+        tf_actions_working_dir: 'terraform/aws/tf-aws-vpc'
         AWS_REGION: 'eu-west-2'
         AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -39,6 +40,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: 'terraform/aws/tf-aws-vpc'
+        tf_actions_working_dir: 'terraform/aws/tf-aws-vpc'
         AWS_REGION: 'eu-west-2'
         AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -49,6 +51,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: 'terraform/aws/tf-aws-vpc'
+        tf_actions_working_dir: 'terraform/aws/tf-aws-vpc'
         AWS_REGION: 'eu-west-2'
         AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -61,6 +64,7 @@ jobs:
         PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: 'terraform/aws/tf-aws-vpc'
+        tf_actions_working_dir: 'terraform/aws/tf-aws-vpc'
         AWS_REGION: 'eu-west-2'
         AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
