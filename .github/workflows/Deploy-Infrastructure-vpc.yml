@@ -33,7 +33,7 @@ jobs:
         AWS_REGION: 'eu-west-2'
         AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: terraform init
+      run: cd ${tf_actions_working_dir}; terraform init
 
     - name: Terraform Validate
       id: validate
@@ -55,7 +55,7 @@ jobs:
         AWS_REGION: 'eu-west-2'
         AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: terraform plan -no-color
+      run: cd ${tf_actions_working_dir}; terraform plan -no-color
       continue-on-error: true
 
     - uses: actions/github-script@v6
