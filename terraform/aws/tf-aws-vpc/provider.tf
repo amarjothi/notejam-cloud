@@ -7,9 +7,7 @@ backend "s3" {
        key    = "arn:aws:s3:::amartfstate/storestate/"
        region = "eu-west-2"
 }
-
-required_version = ">=0.12, <0.14"
-
+//required_version = ">=0.12, <0.14"
 }
 
 provider "aws" {
