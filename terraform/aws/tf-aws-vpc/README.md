@@ -1,2 +1,5 @@
 # Notes
 
+export AWS_ACCESS_KEY_ID=AKIA2G7PW4UKB2LUFURZ
+export AWS_SECRET_ACCESS_KEY=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
+export AWS_DEFAULT_REGION=eu-west-2
