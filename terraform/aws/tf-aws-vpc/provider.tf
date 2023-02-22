@@ -1,13 +1,14 @@
+terraform {
+    backend "http" {}
 
+required_version = ">= 1.0"
 
-terraform{
-
-backend "s3" {
-       bucket = "amartfstate"
-       key    = "arn:aws:s3:::amartfstate/storestate/"
-       region = "eu-west-2"
-}
-//required_version = ">=0.12, <0.14"
+required_providers {
+  aws = {
+    source = "hashicorp/aws"
+    version = ">= 4.51.0"
+    }
+  }
 }
 
 provider "aws" {

@@ -10,12 +10,13 @@ variable env {
     default = null
 }
 
-variable "bucket_id" {
-  type = string
-  default = "s3://amartfstate/storestate/"
+variable project_name {
+    type = string
+    description = "The name of the project"
+    default = "cms5poc"
 }
 
-variable "bucket_arn" {
-  type = string
-  default = "arn:aws:s3:::amartfstate/storestate/"
+variable network_acls {
+    type = map(list(map(string)))
+    description = "The network ACLs for the VPC"
 }
