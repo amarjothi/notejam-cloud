@@ -1,4 +1,254 @@
-include:
-  - project: 'notejampoc/shared-assets/template-gitlab-ci'
-    ref: main
-    file: 'gitlab-ci-terraform.yml'  
+## Default image to use
+image:
+  name: registry.gitlab.com/cms5poc/shared-assets/docker-iac/docker-iac
+
+## Gitlab variables
+variables:
+  TF_ROOT: ${CI_PROJECT_DIR}
+  TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${CI_PROJECT_NAME}
+  TF_CACHE: plan-${CI_PIPELINE_IID}.cache
+  GITLAB_USERNAME: ntt-james
+
+## Pipeline stages
+stages:
+  - checks
+  - plan
+  - costing
+  - deploy
+  - documentation
+  - teardown
+
+## Cache
+cache:
+  key: "${CI_PROJECT_ID}-${CI_PIPELINE_IID}"
+  paths:
+    - .terraform/
+
+## Workflow rules
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_BRANCH == "nonprod"'
+    - if: '$CI_COMMIT_BRANCH == "prod"'
+    - if: '$CI_COMMIT_BRANCH =~ /-feature$/'
+
+## Anchors
+.sort_environment: &sort_environment
+  - | 
+    # Pipeline source is...
+    echo $CI_PIPELINE_SOURCE
+  - | 
+    # Setting environment...
+    case ${CI_PIPELINE_SOURCE} in
+      merge_request_event)
+        echo -e "This is a merge request pipeline, setting environment."
+        ENV=${CI_MERGE_REQUEST_TARGET_BRANCH_NAME} ;
+        ;;
+      *)
+        echo -e "Running a branch pipeline, setting environment."
+        ENV=${CI_COMMIT_BRANCH} ;
+        echo "CI Commit Branch is ${CI_COMMIT_BRANCH}"
+        ;;
+    esac
+    echo "We are using the $ENV environment!"
+    echo "CI Commit Ref name is ${CI_COMMIT_REF_NAME}"
+
+  - |
+    # Setting AWS credentials...
+    case $ENV in
+      dev)
+        export AWS_ACCESS_KEY_ID=${DEV_AWS_ACCESS_KEY_ID} && export AWS_SECRET_ACCESS_KEY=${DEV_AWS_SECRET_ACCESS_KEY} ;
+        echo -e "Setting AWS Credentials for dev..."
+        ;;
+      nonprod)
+        export AWS_ACCESS_KEY_ID=${NONPROD_AWS_ACCESS_KEY_ID} && export AWS_SECRET_ACCESS_KEY=${NONPROD_AWS_SECRET_ACCESS_KEY} ;
+        echo -e "Setting AWS Credentials for nonprod..."
+        ;;
+      prod)
+        export AWS_ACCESS_KEY_ID=${PROD_AWS_ACCESS_KEY_ID} && export AWS_SECRET_ACCESS_KEY=${PROD_AWS_SECRET_ACCESS_KEY} ;
+        echo -e "Setting AWS Credentials for prod..."
+        ;;
+      *)
+        echo "No AWS credentials available for this environment." ;
+        ;;
+    esac
+  - |
+    # Setting Terraform variable file[s]...
+    if [ -s "environments/all.tfvars" ] ; then export VARS_FILE="--var-file environments/all.tfvars" ; fi
+    if [ -s "environments/${ENV}.tfvars" ] ; then export VARS_FILE="$VARS_FILE --var-file environments/${ENV}.tfvars" ; fi
+  - |
+    # Setting Terraform TF_VAR variables... 
+    export TF_VAR_env=${ENV}
+    export TF_VAR_gitlab_access_token=${CI_JOB_TOKEN}
+
+
+.print_job_title: &print_job_title
+  - |
+    # Displaying stage name...
+    TXT_RED="\e[31m" && TXT_BLUE="\e[44m" && TXT_GREEN="\e[42m" && TXT_CLEAR="\e[0m"
+    echo -e "${TXT_BLUE} ----------------------------- RUNNING ${CI_JOB_NAME} ----------------------------- ${TXT_CLEAR}"    
+
+.check_for_local_cert: &check_for_local_cert
+  - |
+    if [[ $CERT_PEM ]] ; then echo $CERT_PEM > cert.pem ; else echo "No Cert PEM detected." ; fi
+    if [[ $PK_PEM ]] ; then echo $PK_PEM > pk.pem ; else echo "No PK PEM detected." ; fi
+    if [[ $CHAIN_PEM ]] ; then echo $CHAIN_PEM > chain.pem ; else echo "No Chain PEM detected." ; fi
+
+## Default before_script
+before_script:
+  - *check_for_local_cert
+  - *sort_environment
+  - terraform init 
+    -backend-config=address=${TF_ADDRESS}-$ENV
+    -backend-config=lock_address=${TF_ADDRESS}-$ENV/lock
+    -backend-config=unlock_address=${TF_ADDRESS}-$ENV/lock
+    -backend-config=username=${GITLAB_USERNAME}
+    -backend-config=password=${GITLAB_TOKEN}
+    -backend-config=lock_method=POST
+    -backend-config=unlock_method=DELETE
+    -backend-config=retry_wait_min=5
+  - terraform validate
+  - *print_job_title
+
+
+## Define the jobs
+tflint:
+  stage: checks
+  script:
+    - tflint --init
+    - tflint $VARS_FILE
+    - tflint $VARS_FILE -f junit > tflint.xml
+  artifacts:
+    reports:
+      junit: "tflint.xml"
+    paths:
+      - "tflint.xml"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+security scan:
+  stage: checks
+  image:
+    name: bridgecrew/checkov:latest
+    entrypoint: [""]
+  before_script:
+    - *sort_environment
+    - *print_job_title    
+  script:
+    - script -q -c 'checkov -d . ${CHECKOV_SETTINGS} ; echo $? > CKVEXIT'
+    - checkov -d . ${CHECKOV_SETTINGS} -o junitxml > checkov.test.xml
+    - exit $(cat CKVEXIT)
+  artifacts:
+    reports:
+      junit: "checkov.test.xml"
+    paths:
+      - "checkov.test.xml"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  variables:
+    CHECKOV_SETTINGS: "--download-external-modules=true --external-checks-dir=checkov/ $VARS_FILE --run-all-external-checks --evaluate-variables=true --skip-check=CKV2_AWS_21,CKV2_AWS_22,CKV2_AWS_14,CKV_AWS_40,CKV2_AWS_19,CKV2_AWS_11,CKV2_AWS_12,CKV2_AWS_5,CKV_AWS_157,CKV_AWS_133,CKV_AWS_118,CKV_AWS_19,CKV_AWS_7,CKV_AWS_145,CKV_AWS_21,CKV_AWS_273,CKV_AWS_13" #--check=CKV_AWS_41,CKV_AWS_24
+
+plan:
+  stage: plan
+  script:
+    #- apt install jq -y
+    - |
+      # Preparing Terraform report...
+      shopt -s expand_aliases # Add shopt command if using debian/ubuntu runner
+      alias convert_report="jq -r '([.resource_changes[]?.change.actions?]|flatten)|{\"create\":(map(select(.==\"create\"))|length),\"update\":(map(select(.==\"update\"))|length),\"delete\":(map(select(.==\"delete\"))|length)}'"
+    - terraform plan $VARS_FILE -out=${TF_CACHE} -input=false
+    - terraform show -json ${TF_CACHE} > plan.json
+    - terraform show -json ${TF_CACHE} | convert_report > plan.report
+  artifacts:
+    paths:
+      - ${TF_CACHE}
+      - plan.json
+      - builds
+    reports:
+      terraform: plan.report
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "nonprod" || $CI_COMMIT_BRANCH == "prod"'
+
+infracost:
+  stage: costing
+  before_script:
+    - *print_job_title    
+  dependencies:
+    - plan
+  script:
+    - infracost breakdown --path plan.json --format json --out-file infracost.json
+    - infracost comment gitlab --gitlab-server-url $CI_SERVER_URL --path infracost.json --repo $CI_PROJECT_PATH --merge-request $CI_MERGE_REQUEST_IID --gitlab-token $GITLAB_TOKEN
+    - infracost breakdown --path plan.json
+  variables:
+    INFRACOST_API_KEY: $INFRACOST_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN # With `api` scope to post merge request comments
+  needs: ["plan"]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+deploy:
+  stage: deploy
+  script:
+    - terraform apply -input=false ${TF_CACHE}
+  needs: ["plan"]
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "nonprod" || $CI_COMMIT_BRANCH == "prod"'
+  allow_failure: false
+
+# terraform-docs:
+#   stage: documentation
+#   before_script:
+#   - *sort_environment
+#   - *print_job_title    
+#   script:
+#     - terraform-docs .
+#     - |
+#       git status
+#       lines=$(git status -s | wc -l)
+#       if [ $lines -gt 0 ];then
+#         echo "Pushing changings to Gitlab"
+#         git config --global user.name "Gitlab CI"
+#         git config --global user.email "james.irvine@nttdata.com"
+#         git add .
+#         git commit -m "Updating Terraform Documentation from pipeline ${CI_PIPELINE_ID}"
+#         git push -o ci.skip "https://${TF_USERNAME}:${GITLAB_TOKEN}@${CI_REPOSITORY_URL#*@}" HEAD:$ENV
+#       else
+#         echo "Didn't detect any changes. Skipping push to Gitlab"
+#       fi
+#   needs: ["deploy"]
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+#       when: never
+#     - if: '$CI_COMMIT_BRANCH == "sandpit" || $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"'
+
+
+destroy-plan: &destroy-plan
+  stage: teardown
+  script:
+    - terraform plan -destroy $VARS_FILE -out=destroyplan.cache -input=false
+  artifacts:
+    paths:
+      - destroyplan.cache 
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "nonprod" || $CI_COMMIT_BRANCH == "prod"'
+
+destroy-apply: &destroy-apply
+  stage: teardown
+  script:
+    - terraform apply -destroy -input=false destroyplan.cache
+  when: manual
+  needs: ["destroy-plan"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "nonprod" || $CI_COMMIT_BRANCH == "prod"'
